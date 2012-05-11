@@ -1433,13 +1433,21 @@ class Net::LDAP::Connection #:nodoc:
         search_attributes.to_ber_sequence
       ].to_ber_appsequence(3)
 
+      rfc_cookie_map = rfc2696_cookie.map{ |v| v.to_ber}.to_ber_sequence.to_s
+
+      begin
+        rfc_cookie_map_to_ber = rfc_cookie_map.to_ber
+      rescue Encoding::UndefinedConversionError
+        # => Fails to convert to_ber from the rfc cookie map using ruby 1.9.3-p194
+      end
+
       controls = []
       controls <<
         [
           Net::LDAP::LDAPControls::PAGED_RESULTS.to_ber,
           # Criticality MUST be false to interoperate with normal LDAPs.
           false.to_ber,
-          rfc2696_cookie.map{ |v| v.to_ber}.to_ber_sequence.to_s.to_ber
+          rfc_cookie_map_to_ber
         ].to_ber_sequence if paged_searches_supported
       controls << sort_control if sort_control
       controls = controls.empty? ? nil : controls.to_ber_contextspecific(0)
